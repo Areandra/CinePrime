@@ -23,9 +23,23 @@ class MovieModel {
 
   // Mengubah JSON dari API menjadi Objek Model (Digunakan saat READ)
   factory MovieModel.fromJson(Map<String, dynamic> json) {
+    String toTitleCase(String text) {
+      if (text.isEmpty) return text;
+
+      return text
+          .toLowerCase()
+          .split(' ')
+          .map((word) {
+            if (word.isEmpty) return word;
+
+            return word[0].toUpperCase() + word.substring(1);
+          })
+          .join(' ');
+    }
+
     return MovieModel(
       id: json['id']?.toString(),
-      judul: json['judul'],
+      judul: toTitleCase(json['judul'].toString()),
       ringkasan: json['ringkasan'],
       gambarPoster: json['gambar_poster'],
       gambarSampul: json['gambar_sampul'],
@@ -39,7 +53,7 @@ class MovieModel {
                 ? (json['skor_rating'] as num).toDouble()
                 : double.tryParse(json['skor_rating'].toString()))
           : null,
-      kategori: json['kategori'],
+      kategori: toTitleCase(json['kategori']),
       urlTrailer: json['url_trailer'],
     );
   }

@@ -1,3 +1,4 @@
+import 'package:cine_prime/view/home_view.dart';
 import 'package:flutter/material.dart';
 import '../controller/movie_controller.dart';
 import '../model/movie_model.dart';
@@ -105,6 +106,40 @@ class _MovieFormViewState extends State<MovieFormView>
           : null,
       urlTrailer: _trailerC.text.trim().isEmpty ? null : _trailerC.text.trim(),
     );
+  }
+
+  void _handleDel() async {
+    setState(() => _isSaving = true);
+
+    bool success;
+    String successMsg;
+    String errorMsg;
+
+    success = await _controller.deleteMovie(widget.movie!.id!);
+    successMsg = 'Film berhasil dihapus!';
+    errorMsg = 'Gagal menghapus film. Coba lagi.';
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (success) {
+      _showSnackBar(
+        message: successMsg,
+        icon: Icons.check_circle,
+        isError: false,
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => HomeView()),
+        (route) => false,
+      );
+    } else {
+      _showSnackBar(
+        message: errorMsg,
+        icon: Icons.error_outline,
+        isError: true,
+      );
+    }
   }
 
   // ── Handler simpan: CREATE atau UPDATE lewat controller ───────────────────
@@ -774,9 +809,7 @@ class _MovieFormViewState extends State<MovieFormView>
           child: SizedBox(
             height: 56,
             child: ElevatedButton(
-              onPressed: () {
-                _controller.deleteMovie(widget.movie!.id!);
-              },
+              onPressed: _handleDel,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.black,
