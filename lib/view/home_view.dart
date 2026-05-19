@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cine_prime/view/form_view.dart';
 import 'package:flutter/material.dart';
 import 'detail_view.dart';
 import '../controller/movie_controller.dart';
@@ -57,7 +58,12 @@ class _HomeViewState extends State<HomeView> {
       final Set<String> cats = {};
       for (final m in movies) {
         if (m.kategori != null && m.kategori!.isNotEmpty) {
-          cats.add(m.kategori!);
+          // Split by comma, trim, filter empty, add all
+          final categories = m.kategori!
+              .split(',')
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty);
+          cats.addAll(categories);
         }
       }
 
@@ -107,9 +113,9 @@ class _HomeViewState extends State<HomeView> {
     if (_selectedCategory == 'All') return movies;
     return movies
         .where(
-          (m) =>
-              (m.kategori ?? '').toLowerCase() ==
-              _selectedCategory.toLowerCase(),
+          (m) => (m.kategori ?? '').toLowerCase().contains(
+            _selectedCategory.toLowerCase(),
+          ),
         )
         .toList();
   }
@@ -398,6 +404,23 @@ class _HomeViewState extends State<HomeView> {
             },
           ),
         ),
+        Container(
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.add, color: Colors.white70),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MovieFormView()),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
@@ -556,7 +579,7 @@ class _HomeViewState extends State<HomeView> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${movie.skorRating ?? 9}',
+                                '${(movie.skorRating! <= 10 ? movie.skorRating : (movie.skorRating! / 10)) ?? 9}',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -581,6 +604,8 @@ class _HomeViewState extends State<HomeView> {
                           ),
                           child: Text(
                             movie.kategori ?? 'Action',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 12,
@@ -876,7 +901,7 @@ class _HomeViewState extends State<HomeView> {
                   const Icon(Icons.star, size: 12, color: Colors.amber),
                   const SizedBox(width: 4),
                   Text(
-                    '${movie.skorRating ?? '-'}',
+                    '${(movie.skorRating! <= 10 ? movie.skorRating : (movie.skorRating! / 10)) ?? 9}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 12,
@@ -894,7 +919,10 @@ class _HomeViewState extends State<HomeView> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      movie.kategori ?? '',
+                      ('${movie.kategori!.split(',')[0]}${movie.kategori!.split(',').length > 1 ? ",..." : ""}') ??
+                          '',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                       style: const TextStyle(
                         color: Colors.amber,
                         fontSize: 10,

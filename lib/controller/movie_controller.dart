@@ -95,27 +95,31 @@ class MovieController {
     }
   }
 
-  Future<List<String>> getCategories() async {
-    try {
-      // Panggil getAllMovies untuk mendapatkan semua data
-      final List<MovieModel> movies = await getAllMovies();
+  // Future<List<String>> getCategories() async {
+  //   try {
+  //     // Panggil getAllMovies untuk mendapatkan semua data
+  //     final List<MovieModel> movies = await getAllMovies();
 
-      // Ambil semua kategori, masukkan ke dalam Set untuk menghapus duplikat
-      final Set<String> categories = {};
+  //     // Ambil semua kategori, masukkan ke dalam Set untuk menghapus duplikat
+  //     final Set<String> categories = {};
 
-      for (var movie in movies) {
-        // Asumsi: di MovieModel ada properti 'category' atau 'genre'
-        // Sesuaikan dengan nama field di model Anda (misalnya: movie.category)
-        if (movie.kategori != null && movie.kategori!.isNotEmpty) {
-          categories.add(movie.kategori!);
-        }
-      }
+  //     for (var movie in movies) {
+  //       // Asumsi: di MovieModel ada properti 'category' atau 'genre'
+  //       // Sesuaikan dengan nama field di model Anda (misalnya: movie.category)
+  //       if (movie.kategori != null && movie.kategori!.isNotEmpty) {
+  //         final category = movie.kategori!
+  //             .split(',')
+  //             .map((c) => c.trim())
+  //             .where((c) => c.isNotEmpty);
+  //         categories.addAll(category);
+  //       }
+  //     }
 
-      // Kembalikan sebagai List
-      return categories.toList();
-    } catch (e) {
-      // Jika gagal, kembalikan list kosong atau lempar error
-      return [];
-    }
-  }
+  //     // Kembalikan sebagai List
+  //     return categories.toList();
+  //   } catch (e) {
+  //     // Jika gagal, kembalikan list kosong atau lempar error
+  //     return [];
+  //   }
+  // }
 }

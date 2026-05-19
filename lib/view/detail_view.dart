@@ -246,39 +246,6 @@ class _MovieDetailViewState extends State<MovieDetailView>
                 onPressed: () => Navigator.pop(context),
               ),
             ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.share, color: Colors.white, size: 22),
-                  onPressed: () {},
-                ),
-              ),
-              Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    color: _isBookmarked ? Colors.amber : Colors.white,
-                    size: 22,
-                  ),
-                  onPressed: () {
-                    setState(() => _isBookmarked = !_isBookmarked);
-                  },
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -450,7 +417,11 @@ class _MovieDetailViewState extends State<MovieDetailView>
                             _buildInfoColumn(
                               icon: Icons.star,
                               value:
-                                  widget.movie.skorRating?.toString() ?? 'N/A',
+                                  (widget.movie.skorRating! <= 10
+                                          ? widget.movie.skorRating
+                                          : (widget.movie.skorRating! / 10))
+                                      ?.toString() ??
+                                  'N/A',
                               label: 'Rating',
                               color: Colors.amber,
                             ),

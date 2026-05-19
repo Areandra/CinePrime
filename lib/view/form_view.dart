@@ -16,11 +16,13 @@ class _MovieFormViewState extends State<MovieFormView>
   final MovieController _controller = MovieController();
 
   late TextEditingController _judulC, _ringkasanC, _kategoriC, _ratingC;
+  late TextEditingController _posterC, _sampulC, _trailerC;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   bool _isSaving = false;
   double _ratingValue = 0;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -30,12 +32,31 @@ class _MovieFormViewState extends State<MovieFormView>
     _kategoriC = TextEditingController(text: widget.movie?.kategori ?? "");
     _ratingC = TextEditingController(
       text: widget.movie?.skorRating != null
-          ? widget.movie!.skorRating.toString()
+          ? (widget.movie!.skorRating! <= 10
+                    ? widget.movie!.skorRating
+                    : (widget.movie!.skorRating! / 10))
+                ?.toString()
           : "",
     );
+    _posterC = TextEditingController(text: widget.movie?.gambarPoster ?? "");
+    _sampulC = TextEditingController(text: widget.movie?.gambarSampul ?? "");
+    _trailerC = TextEditingController(text: widget.movie?.urlTrailer ?? "");
 
     if (widget.movie?.skorRating != null) {
-      _ratingValue = double.tryParse(widget.movie!.skorRating.toString()) ?? 0;
+      _ratingValue =
+          double.tryParse(
+            (widget.movie!.skorRating! <= 10
+                    ? widget.movie!.skorRating
+                    : (widget.movie!.skorRating! / 10))
+                .toString(),
+          ) ??
+          0;
+    }
+
+    if (widget.movie?.tanggalRilis != null) {
+      _selectedDate = DateTime.fromMillisecondsSinceEpoch(
+        widget.movie!.tanggalRilis! * 1000,
+      );
     }
 
     _animationController = AnimationController(
@@ -62,6 +83,9 @@ class _MovieFormViewState extends State<MovieFormView>
     _ringkasanC.dispose();
     _kategoriC.dispose();
     _ratingC.dispose();
+    _posterC.dispose();
+    _sampulC.dispose();
+    _trailerC.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -69,16 +93,17 @@ class _MovieFormViewState extends State<MovieFormView>
   // ── Bangun MovieModel dari isian form ─────────────────────────────────────
   MovieModel _buildMovieFromForm() {
     return MovieModel(
-      id: widget.movie?.id, // null saat CREATE, terisi saat UPDATE
+      id: widget.movie?.id,
       judul: _judulC.text.trim(),
       ringkasan: _ringkasanC.text.trim(),
       kategori: _kategoriC.text.trim(),
       skorRating: _ratingValue,
-      // Pertahankan field lain dari data lama jika sedang UPDATE
-      gambarPoster: widget.movie?.gambarPoster,
-      gambarSampul: widget.movie?.gambarSampul,
-      tanggalRilis: widget.movie?.tanggalRilis,
-      urlTrailer: widget.movie?.urlTrailer,
+      gambarPoster: _posterC.text.trim(),
+      gambarSampul: _sampulC.text.trim(),
+      tanggalRilis: _selectedDate != null
+          ? (_selectedDate!.millisecondsSinceEpoch ~/ 1000)
+          : null,
+      urlTrailer: _trailerC.text.trim().isEmpty ? null : _trailerC.text.trim(),
     );
   }
 
@@ -94,12 +119,10 @@ class _MovieFormViewState extends State<MovieFormView>
     String errorMsg;
 
     if (widget.movie == null) {
-      // ── MODE ADD ──────────────────────────────────────────────────────────
       success = await _controller.createMovie(movie);
       successMsg = 'Film berhasil ditambahkan!';
       errorMsg = 'Gagal menambahkan film. Coba lagi.';
     } else {
-      // ── MODE UPDATE ───────────────────────────────────────────────────────
       success = await _controller.updateMovie(widget.movie!.id!, movie);
       successMsg = 'Film berhasil diperbarui!';
       errorMsg = 'Gagal memperbarui film. Coba lagi.';
@@ -114,7 +137,6 @@ class _MovieFormViewState extends State<MovieFormView>
         icon: widget.movie == null ? Icons.check_circle : Icons.edit,
         isError: false,
       );
-      // Kembalikan true agar halaman pemanggil bisa refresh datanya
       Navigator.pop(context, true);
     } else {
       _showSnackBar(
@@ -124,7 +146,6 @@ class _MovieFormViewState extends State<MovieFormView>
       );
     }
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   void _showSnackBar({
     required String message,
@@ -222,6 +243,110 @@ class _MovieFormViewState extends State<MovieFormView>
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'Please enter synopsis'
                         : null,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // URL Poster
+                  _buildPremiumInput(
+                    controller: _posterC,
+                    label: 'Poster URL',
+                    hint: 'https://example.com/poster.jpg',
+                    icon: Icons.image,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter poster URL'
+                        : null,
+                  ),
+                  // Preview poster
+                  if (_posterC.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _posterC.text,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 150,
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Invalid image URL',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // URL Sampul
+                  _buildPremiumInput(
+                    controller: _sampulC,
+                    label: 'Cover/Backdrop URL',
+                    hint: 'https://example.com/backdrop.jpg',
+                    icon: Icons.wallpaper,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter cover URL'
+                        : null,
+                  ),
+                  // Preview sampul
+                  if (_sampulC.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _sampulC.text,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 150,
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Invalid image URL',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // Tanggal Rilis
+                  _buildDatePicker(),
+                  const SizedBox(height: 20),
+
+                  // URL Trailer
+                  _buildPremiumInput(
+                    controller: _trailerC,
+                    label: 'Trailer URL (Optional)',
+                    hint: 'https://youtube.com/watch?v=...',
+                    icon: Icons.play_circle,
+                    validator: (v) {
+                      if (v != null && v.trim().isNotEmpty) {
+                        final uri = Uri.tryParse(v.trim());
+                        if (uri == null || !uri.hasScheme) {
+                          return 'Please enter a valid URL';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 40),
 
@@ -398,6 +523,12 @@ class _MovieFormViewState extends State<MovieFormView>
           ),
           cursorColor: Colors.amber,
           validator: validator,
+          onChanged: (value) {
+            // Trigger rebuild untuk preview gambar
+            if (controller == _posterC || controller == _sampulC) {
+              setState(() {});
+            }
+          },
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
@@ -471,7 +602,6 @@ class _MovieFormViewState extends State<MovieFormView>
           ),
           child: Column(
             children: [
-              // Bintang interaktif
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) {
@@ -508,7 +638,7 @@ class _MovieFormViewState extends State<MovieFormView>
                 ),
                 child: Text(
                   _ratingValue > 0
-                      ? '${_ratingValue.toInt()} / 5'
+                      ? '${_ratingValue.toString()} / 5'
                       : 'Tap to rate',
                   style: TextStyle(
                     color: _ratingValue > 0
@@ -519,7 +649,6 @@ class _MovieFormViewState extends State<MovieFormView>
                   ),
                 ),
               ),
-              // Hidden field untuk validasi form
               TextFormField(
                 controller: _ratingC,
                 style: const TextStyle(color: Colors.transparent, fontSize: 1),
@@ -542,31 +671,130 @@ class _MovieFormViewState extends State<MovieFormView>
     );
   }
 
+  Widget _buildDatePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color: Colors.amber,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Release Date',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        InkWell(
+          onTap: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: _selectedDate ?? DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now().add(const Duration(days: 365)),
+              builder: (context, child) {
+                return Theme(
+                  data: ThemeData.dark().copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: Colors.amber,
+                      onPrimary: Colors.black,
+                      surface: Color(0xFF1F2229),
+                      onSurface: Colors.white,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (date != null) {
+              setState(() {
+                _selectedDate = date;
+              });
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.event,
+                  color: _selectedDate != null
+                      ? Colors.amber
+                      : Colors.white.withOpacity(0.3),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _selectedDate != null
+                      ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                      : 'Select release date...',
+                  style: TextStyle(
+                    color: _selectedDate != null
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.3),
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons() {
     return Row(
       children: [
-        // Cancel
         Expanded(
+          flex: 1,
           child: SizedBox(
             height: 56,
-            child: OutlinedButton(
-              onPressed: _isSaving ? null : () => Navigator.pop(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white70,
-                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+            child: ElevatedButton(
+              onPressed: () {
+                _controller.deleteMovie(widget.movie!.id!);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.black,
+                disabledBackgroundColor: Colors.amber.withOpacity(0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: _isSaving ? 0 : 4,
+                shadowColor: Colors.amber.withOpacity(0.4),
               ),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [Icon(Icons.delete, size: 20)],
               ),
             ),
           ),
         ),
         const SizedBox(width: 16),
-        // Save / Update
         Expanded(
           flex: 2,
           child: SizedBox(

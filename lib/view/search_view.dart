@@ -23,20 +23,6 @@ class _MovieSearchViewState extends State<MovieSearchView>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // ── Daftar kategori dengan ikon & warna ──────────────────────────────────
-  final List<Map<String, dynamic>> _categoryMeta = [
-    {
-      'name': 'Action',
-      'icon': Icons.local_fire_department,
-      'color': Colors.red,
-    },
-    {'name': 'Comedy', 'icon': Icons.emoji_emotions, 'color': Colors.orange},
-    {'name': 'Drama', 'icon': Icons.theater_comedy, 'color': Colors.purple},
-    {'name': 'Sci-Fi', 'icon': Icons.rocket_launch, 'color': Colors.blue},
-    {'name': 'Horror', 'icon': Icons.nightlight_round, 'color': Colors.grey},
-    {'name': 'Romance', 'icon': Icons.favorite, 'color': Colors.pink},
-  ];
-
   // Kategori dari API (dinamis)
   List<String> _apiCategories = [];
   // ─────────────────────────────────────────────────────────────────────────
@@ -69,7 +55,11 @@ class _MovieSearchViewState extends State<MovieSearchView>
       final Set<String> cats = {};
       for (final m in data) {
         if (m.kategori != null && m.kategori!.isNotEmpty) {
-          cats.add(m.kategori!);
+          final categories = m.kategori!
+              .split(',')
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty);
+          cats.addAll(categories);
         }
       }
       setState(() {
@@ -208,21 +198,13 @@ class _MovieSearchViewState extends State<MovieSearchView>
   Widget _buildSearchSuggestions() {
     // Gabungkan kategori dari API dengan fallback ke _categoryMeta
     final List<Map<String, dynamic>> displayCategories = [];
-    for (final meta in _categoryMeta) {
-      displayCategories.add(meta);
-    }
     // Tambah kategori dari API yang belum ada di _categoryMeta
     for (final cat in _apiCategories) {
-      final alreadyExists = _categoryMeta.any(
-        (m) => (m['name'] as String).toLowerCase() == cat.toLowerCase(),
-      );
-      if (!alreadyExists) {
-        displayCategories.add({
-          'name': cat,
-          'icon': Icons.movie_outlined,
-          'color': Colors.teal,
-        });
-      }
+      displayCategories.add({
+        'name': cat,
+        'icon': Icons.movie_outlined,
+        'color': Colors.teal,
+      });
     }
 
     return SingleChildScrollView(
@@ -237,7 +219,7 @@ class _MovieSearchViewState extends State<MovieSearchView>
             if (_apiCategories.isNotEmpty) ...[
               _buildSectionHeader(
                 icon: Icons.trending_up,
-                title: 'Popular Searches',
+                title: 'Browse Categories',
                 gradient: const [Colors.red, Colors.orange],
               ),
               const SizedBox(height: 12),
@@ -247,7 +229,6 @@ class _MovieSearchViewState extends State<MovieSearchView>
                 children: _apiCategories.map((cat) {
                   return _buildSuggestionChip(
                     cat,
-                    isPopular: true,
                     onTap: () => _searchByCategory(cat),
                   );
                 }).toList(),
@@ -281,15 +262,6 @@ class _MovieSearchViewState extends State<MovieSearchView>
               }),
               const SizedBox(height: 32),
             ],
-
-            // Browse Categories
-            _buildSectionHeader(
-              icon: Icons.category,
-              title: 'Browse Categories',
-              gradient: const [Colors.green, Colors.teal],
-            ),
-            const SizedBox(height: 16),
-            _buildCategoryGrid(displayCategories),
 
             const SizedBox(height: 100),
           ],
@@ -330,47 +302,28 @@ class _MovieSearchViewState extends State<MovieSearchView>
     );
   }
 
-  Widget _buildSuggestionChip(
-    String label, {
-    bool isPopular = false,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildSuggestionChip(String label, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isPopular
-              ? LinearGradient(
-                  colors: [
-                    Colors.amber.withOpacity(0.15),
-                    Colors.orange.withOpacity(0.1),
-                  ],
-                )
-              : null,
-          color: isPopular ? null : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isPopular
-                ? Colors.amber.withOpacity(0.3)
-                : Colors.white.withOpacity(0.1),
+          gradient: LinearGradient(
+            colors: [
+              Colors.amber.withOpacity(0.15),
+              Colors.orange.withOpacity(0.1),
+            ],
           ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.amber.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isPopular) ...[
-              const Icon(
-                Icons.local_fire_department,
-                size: 16,
-                color: Colors.amber,
-              ),
-              const SizedBox(width: 6),
-            ],
             Text(
               label,
               style: TextStyle(
-                color: isPopular ? Colors.amber : Colors.white70,
+                color: Colors.amber,
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
               ),
@@ -424,61 +377,6 @@ class _MovieSearchViewState extends State<MovieSearchView>
           ],
         ),
       ),
-    );
-  }
-
-  // ── Category Grid — klik langsung filter ──────────────────────────────────
-  Widget _buildCategoryGrid(List<Map<String, dynamic>> categories) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 1.2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final name = category['name'] as String;
-        final color = category['color'] as Color;
-        final icon = category['icon'] as IconData;
-        return GestureDetector(
-          onTap: () => _searchByCategory(name),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withOpacity(0.2)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
   // ─────────────────────────────────────────────────────────────────────────
